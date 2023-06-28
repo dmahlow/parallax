@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Parallax Effect</title>
+        <style>
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: #000;
+            }
+            #myCanvas, #depthCanvas {
+                position: absolute;
+                cursor: crosshair;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="myCanvas" width="800" height="600"></canvas>
+        <canvas id="depthCanvas" style="display: none;" width="800" height="600"></canvas>
+        <script>
+            var isoImage = new Image();
+            isoImage.src = 'parallax.input.image.png';
+
+            var depthMap = new Image();
+            depthMap.src = 'parallax.input.depth.png';
+
+            var canvas = document.getElementById('myCanvas');
+            var context = canvas.getContext('2d');
+
+            var depthCanvas = document.getElementById('depthCanvas');
+            var depthContext = depthCanvas.getContext('2d');
+
+            var imagesLoaded = 0;
+            
+            function imageLoaded() {
+                imagesLoaded++;
+                if (imagesLoaded === 2) {
+                    createParallaxEffect();
+                }
+            }
+
+            isoImage.onload = imageLoaded;
+            depthMap.onload = imageLoaded;
+
+            function createParallaxEffect() {
+    context.drawImage(isoImage, 0, 0, canvas.width, canvas.height);
+    depthContext.drawImage(depthMap, 0, 0, depthCanvas.width, depthCanvas.height);
+
+    var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    var data = imageData.data;
+
+    var depthData = depthContext.getImageData(0, 0, depthCanvas.width, depthCanvas.height).data;
+
+    var scaleFactor = 0.1; // Adjust this value to change the amount of displacement
+
+    canvas.onmousemove = function(event) {
+        var mouseX = event.clientX - canvas.offsetLeft;
+        var mouseY = event.clientY - canvas.offsetTop;
+
+        var newData = new Uint8ClampedArray(data.length);
+
+        for (var i = 0; i < data.length; i += 4) {
+            var depth = depthData[i] / 255 * scaleFactor;
+            var dx = Math.round((mouseX - i / 4 % canvas.width) * depth);
+            var dy = Math.round((mouseY - Math.floor(i / 4 / canvas.width)) * depth);
+
+            var newX = (i / 4 + dx) % canvas.width;
+            var newY = Math.floor(i / 4 / canvas.width) + dy;
+
+            if (newX < 0 || newX >= canvas.width || newY < 0 || newY >= canvas.height) continue;
+
+            var j = 4 * (newY * canvas.width + newX);
+
+            newData[i] = data[j];
+            newData[i + 1] = data[j + 1];
+            newData[i + 2] = data[j + 2];
+            newData[i + 3] = data[j + 3];
+        }
+
+        context.putImageData(new ImageData(newData, canvas.width, canvas.height), 0, 0);
+    };
+}
+
+
+        </script>
+    </body>
+</html>
